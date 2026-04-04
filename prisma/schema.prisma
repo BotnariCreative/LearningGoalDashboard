@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String @id
+  passwordHash String @map("password_hash")
+
+  @@map("users")
+}
+
+model GoalProgress {
+  id            String @id
+  status        String @default("")
+  verified      String @default("")
+  verifiedBy    String @default("") @map("verified_by")
+  project       String @default("")
+  bewijs        String @default("")
+  documentation String @default("")
+  updatedAt     String @default("") @map("updated_at")
+
+  @@map("goal_progress")
+}
