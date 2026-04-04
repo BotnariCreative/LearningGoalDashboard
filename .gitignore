@@ -56,3 +56,6 @@ Thumbs.db
 # misc
 .cache/
 .turbo/
+
+# prisma generated client
+/generated/
