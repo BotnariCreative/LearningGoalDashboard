@@ -1,3 +1,7 @@
+packages:
+  - '.'
+  - '!generated/**'
+
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
