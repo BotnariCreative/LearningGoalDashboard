@@ -1,7 +1,22 @@
 import { verifyPassword, createSession } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { cookies } from 'next/headers'
 
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+  )
+}
+
 export async function POST(request: Request) {
+  const ip = getClientIp(request)
+  if (!checkRateLimit(`admin-login:${ip}`)) {
+    console.warn(`[auth] Rate limit exceeded for admin login from ${ip}`)
+    return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429 })
+  }
+
   try {
     const { password } = await request.json()
     if (!password || typeof password !== 'string') {
@@ -10,6 +25,7 @@ export async function POST(request: Request) {
 
     const valid = await verifyPassword(password)
     if (!valid) {
+      console.warn(`[auth] Failed admin login attempt from ${ip}`)
       return Response.json({ error: 'Invalid password' }, { status: 401 })
     }
 
@@ -18,8 +34,8 @@ export async function POST(request: Request) {
     cookieStore.set('admin_session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 8,
       path: '/',
     })
 

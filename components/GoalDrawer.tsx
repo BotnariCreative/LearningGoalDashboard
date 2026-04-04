@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { StatusDot } from './StatusDot'
 import type { Goal } from '@/types'
@@ -13,6 +13,17 @@ interface GoalDrawerProps {
 export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const [sanitizedDoc, setSanitizedDoc] = useState('')
+
+  useEffect(() => {
+    if (!goal?.documentation) {
+      setSanitizedDoc('')
+      return
+    }
+    import('dompurify').then(({ default: DOMPurify }) => {
+      setSanitizedDoc(DOMPurify.sanitize(goal.documentation))
+    })
+  }, [goal?.documentation])
 
   useEffect(() => {
     const panel = panelRef.current
@@ -139,10 +150,12 @@ export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
               <p className="mb-3 text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">
                 Documentation
               </p>
-              <div
-                className="doc-content"
-                dangerouslySetInnerHTML={{ __html: goal.documentation }}
-              />
+              {sanitizedDoc && (
+                <div
+                  className="doc-content"
+                  dangerouslySetInnerHTML={{ __html: sanitizedDoc }}
+                />
+              )}
             </div>
           ) : (
             <div className="flex h-32 items-center justify-center">

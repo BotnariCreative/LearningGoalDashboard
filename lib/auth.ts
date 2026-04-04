@@ -3,9 +3,11 @@ import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'learning-goals-jwt-secret-change-in-production'
-)
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set')
+}
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 
 async function getUserHash(id: string): Promise<string | null> {
   const user = await prisma.user.findUnique({ where: { id } })
@@ -28,7 +30,7 @@ export async function createSession(): Promise<string> {
   return new SignJWT({ admin: true })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('8h')
     .sign(JWT_SECRET)
 }
 
@@ -36,7 +38,7 @@ export async function createTeacherSession(): Promise<string> {
   return new SignJWT({ teacher: true })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('8h')
     .sign(JWT_SECRET)
 }
 
