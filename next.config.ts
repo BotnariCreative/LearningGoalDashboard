@@ -20,10 +20,10 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       // Scripts: self + inline scripts required by Next.js hydration
       "script-src 'self' 'unsafe-inline'",
-      // Images: self + data URIs (used by Tiptap) + blob (video thumbnails)
-      "img-src 'self' data: blob:",
-      // Media: allow self-hosted uploads
-      "media-src 'self' blob:",
+      // Images: self + data URIs (used by Tiptap) + blob (video thumbnails) + Vercel Blob CDN
+      "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+      // Media: allow self-hosted uploads + Vercel Blob CDN
+      "media-src 'self' blob: https://*.public.blob.vercel-storage.com",
       // Fonts: self only
       "font-src 'self'",
       // Connect: self (API calls)

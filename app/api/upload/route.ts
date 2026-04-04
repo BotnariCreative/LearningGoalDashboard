@@ -71,11 +71,21 @@ export async function POST(request: Request) {
 
     const ext = MIME_TO_EXT[detectedType]
     const slug = `${randomBytes(16).toString('hex')}.${ext}`
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
 
+    // Vercel Blob in production (BLOB_READ_WRITE_TOKEN set),
+    // local filesystem in development
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const { put } = await import('@vercel/blob')
+      const blob = await put(slug, buffer, {
+        access: 'public',
+        contentType: detectedType,
+      })
+      return Response.json({ url: blob.url })
+    }
+
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
     await mkdir(uploadsDir, { recursive: true })
     await writeFile(path.join(uploadsDir, slug), buffer)
-
     return Response.json({ url: `/uploads/${slug}` })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
