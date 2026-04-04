@@ -17,6 +17,7 @@ export default async function HomePage() {
         ...goal,
         status: (stored?.status ?? '') as '' | 'td' | 'done',
         verified: stored?.verified ?? '',
+        verifiedBy: stored?.verifiedBy ?? '',
         project: stored?.project ?? '',
         bewijs: stored?.bewijs ?? '',
         documentation: stored?.documentation ?? '',
