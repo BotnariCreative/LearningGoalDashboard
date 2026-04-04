@@ -29,7 +29,10 @@ async function uploadFile(file: File): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
   const res = await fetch('/api/upload', { method: 'POST', body: fd })
-  if (!res.ok) throw new Error('Upload failed')
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
   const { url } = await res.json()
   return url
 }
@@ -110,6 +113,8 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
           } else {
             view.dispatch(view.state.tr.replaceSelectionWith(view.state.schema.nodes.video.create({ src: url })))
           }
+        }).catch((err) => {
+          alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
         })
         return true
       },
@@ -121,6 +126,8 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
         event.preventDefault()
         uploadFile(file).then((url) => {
           view.dispatch(view.state.tr.replaceSelectionWith(view.state.schema.nodes.image.create({ src: url })))
+        }).catch((err) => {
+          alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
         })
         return true
       },
@@ -140,7 +147,9 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
     try {
       const url = await uploadFile(file)
       editor.chain().focus().insertContent({ type: 'image', attrs: { src: url } }).run()
-    } catch { /* noop */ }
+    } catch (err) {
+      alert(`Image upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
     e.target.value = ''
   }, [editor])
 
@@ -150,7 +159,9 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
     try {
       const url = await uploadFile(file)
       editor.chain().focus().insertContent({ type: 'video', attrs: { src: url } }).run()
-    } catch { /* noop */ }
+    } catch (err) {
+      alert(`Video upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
     e.target.value = ''
   }, [editor])
 
