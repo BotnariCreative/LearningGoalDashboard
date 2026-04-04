@@ -123,6 +123,10 @@ export const ResizableImage = Node.create({
       width: {
         default: null,
         parseHTML: (el) => {
+          // Prefer the width attribute (new format)
+          const w = el.getAttribute('width')
+          if (w) return parseFloat(w)
+          // Fall back to inline style (old format, backward compat)
           const style = el.getAttribute('style') ?? ''
           const m = style.match(/width:\s*([\d.]+)px/)
           if (m) return parseFloat(m[1])
@@ -130,7 +134,8 @@ export const ResizableImage = Node.create({
         },
         renderHTML: (attrs) => {
           if (!attrs.width) return {}
-          return { style: `width: ${attrs.width}px` }
+          // Use the width attribute — inline styles are stripped by DOMPurify
+          return { width: `${Math.round(attrs.width)}` }
         },
       },
     }
