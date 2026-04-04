@@ -14,6 +14,7 @@ export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
   const [sanitizedDoc, setSanitizedDoc] = useState('')
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
   useEffect(() => {
     if (!goal?.documentation) {
@@ -46,11 +47,14 @@ export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
   // Handle key press
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (lightboxSrc) setLightboxSrc(null)
+        else onClose()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
+  }, [onClose, lightboxSrc])
 
   const statusLabel =
     goal?.verified === 'yes'
@@ -154,6 +158,10 @@ export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
                 <div
                   className="doc-content"
                   dangerouslySetInnerHTML={{ __html: sanitizedDoc }}
+                  onClick={(e) => {
+                    const t = e.target as HTMLElement
+                    if (t.tagName === 'IMG') setLightboxSrc((t as HTMLImageElement).src)
+                  }}
                 />
               )}
             </div>
@@ -172,6 +180,26 @@ export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
           </div>
         )}
       </div>
+      {/* Lightbox */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={() => setLightboxSrc(null)}
+            className="absolute right-5 top-5 text-xs font-bold tracking-[0.15em] uppercase text-white/40 transition-colors hover:text-white/80"
+          >
+            ✕ CLOSE
+          </button>
+          <img
+            src={lightboxSrc}
+            alt=""
+            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   )
 }
