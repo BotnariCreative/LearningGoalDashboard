@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
-import type { GoalProgress as PrismaGoalProgress } from '@prisma/client'
 import type { GoalProgress } from '@/types'
+
+type PrismaGoalProgressRow = Awaited<ReturnType<typeof prisma.goalProgress.findMany>>[number]
 
 const defaults: Omit<GoalProgress, 'updatedAt'> = {
   status: '',
@@ -11,15 +12,7 @@ const defaults: Omit<GoalProgress, 'updatedAt'> = {
   documentation: '',
 }
 
-function toProgress(row: {
-  status: string
-  verified: string
-  verifiedBy: string
-  project: string
-  bewijs: string
-  documentation: string
-  updatedAt: string
-}): GoalProgress {
+function toProgress(row: PrismaGoalProgressRow): GoalProgress {
   return {
     status: row.status as GoalProgress['status'],
     verified: row.verified,
@@ -32,7 +25,7 @@ function toProgress(row: {
 }
 
 export async function readStore(): Promise<Record<string, GoalProgress>> {
-  const rows: PrismaGoalProgress[] = await prisma.goalProgress.findMany()
+  const rows: PrismaGoalProgressRow[] = await prisma.goalProgress.findMany()
   return Object.fromEntries(rows.map((row) => [row.id, toProgress(row)]))
 }
 
