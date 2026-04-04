@@ -47,33 +47,39 @@ async function isAuthorized(): Promise<boolean> {
 }
 
 export async function POST(request: Request) {
-  if (!(await isAuthorized())) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    if (!(await isAuthorized())) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const formData = await request.formData()
+    const file = formData.get('file') as File | null
+    if (!file) {
+      return Response.json({ error: 'No file provided' }, { status: 400 })
+    }
+
+    const maxSize = 100 * 1024 * 1024
+    if (file.size > maxSize) {
+      return Response.json({ error: 'File too large (max 100 MB)' }, { status: 400 })
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const detectedType = detectMimeType(buffer)
+    if (!detectedType) {
+      return Response.json({ error: 'File type not allowed' }, { status: 400 })
+    }
+
+    const ext = MIME_TO_EXT[detectedType]
+    const slug = `${randomBytes(16).toString('hex')}.${ext}`
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+
+    await mkdir(uploadsDir, { recursive: true })
+    await writeFile(path.join(uploadsDir, slug), buffer)
+
+    return Response.json({ url: `/uploads/${slug}` })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[upload]', message)
+    return Response.json({ error: message }, { status: 500 })
   }
-
-  const formData = await request.formData()
-  const file = formData.get('file') as File | null
-  if (!file) {
-    return Response.json({ error: 'No file provided' }, { status: 400 })
-  }
-
-  const maxSize = 100 * 1024 * 1024
-  if (file.size > maxSize) {
-    return Response.json({ error: 'File too large (max 100 MB)' }, { status: 400 })
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer())
-  const detectedType = detectMimeType(buffer)
-  if (!detectedType) {
-    return Response.json({ error: 'File type not allowed' }, { status: 400 })
-  }
-
-  const ext = MIME_TO_EXT[detectedType]
-  const slug = `${randomBytes(16).toString('hex')}.${ext}`
-  const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-
-  await mkdir(uploadsDir, { recursive: true })
-  await writeFile(path.join(uploadsDir, slug), buffer)
-
-  return Response.json({ url: `/uploads/${slug}` })
 }
