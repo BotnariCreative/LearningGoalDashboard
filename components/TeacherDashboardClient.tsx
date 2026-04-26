@@ -28,36 +28,53 @@ function TeacherGoalRow({
   const [verifiedBy, setVerifiedBy] = useState(goal.verifiedBy)
   const [nameInput, setNameInput] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   async function verify() {
     if (!nameInput.trim()) return
-    setVerified('yes')
-    setVerifiedBy(nameInput.trim())
+    setError('')
     setSaving(true)
     try {
-      await fetch(`/api/goals/${goal.id}`, {
+      const res = await fetch(`/api/goals/${goal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ verified: 'yes', verifiedBy: nameInput.trim() }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError((data as { error?: string }).error ?? 'Failed to verify')
+        return
+      }
+      setVerified('yes')
+      setVerifiedBy(nameInput.trim())
       onVerifiedChange(goal.id, 'yes')
+    } catch {
+      setError('Network error – please try again')
     } finally {
       setSaving(false)
     }
   }
 
   async function unverify() {
-    setVerified('')
-    setVerifiedBy('')
-    setNameInput('')
+    setError('')
     setSaving(true)
     try {
-      await fetch(`/api/goals/${goal.id}`, {
+      const res = await fetch(`/api/goals/${goal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ verified: '', verifiedBy: '' }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError((data as { error?: string }).error ?? 'Failed to remove verification')
+        return
+      }
+      setVerified('')
+      setVerifiedBy('')
+      setNameInput('')
       onVerifiedChange(goal.id, '')
+    } catch {
+      setError('Network error – please try again')
     } finally {
       setSaving(false)
     }
@@ -98,7 +115,7 @@ function TeacherGoalRow({
               title="Remove verification"
               className="flex h-7 items-center gap-1.5 rounded-lg bg-white px-2.5 text-xs font-bold tracking-widest uppercase text-black transition-opacity hover:opacity-80 disabled:opacity-40"
             >
-              ✓ VERIFIED
+              {saving ? '...' : '✓ VERIFIED'}
             </button>
           ) : (
             <div className="flex items-center gap-1.5">
@@ -116,7 +133,7 @@ function TeacherGoalRow({
                 title="Mark as verified"
                 className="flex h-7 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs font-bold tracking-widest uppercase text-white/30 transition-colors hover:border-white/25 hover:text-white/60 disabled:opacity-40"
               >
-                ✓ VERIFY
+                {saving ? '...' : '✓ VERIFY'}
               </button>
             </div>
           )}
@@ -126,6 +143,12 @@ function TeacherGoalRow({
       {verified === 'yes' && verifiedBy && (
         <p className="mt-1 pl-8 text-[10px] tracking-[0.15em] uppercase text-white/30">
           Verified by {verifiedBy}
+        </p>
+      )}
+
+      {error && (
+        <p className="mt-1 pl-8 text-[10px] tracking-[0.15em] uppercase text-red-400">
+          {error}
         </p>
       )}
     </div>
