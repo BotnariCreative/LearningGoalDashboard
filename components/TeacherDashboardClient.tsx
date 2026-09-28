@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { GrainTexture } from './GrainTexture'
-import { StatusDot } from './StatusDot'
+import { StatusDot, StatusLabel } from './StatusDot'
 import { GoalDrawer } from './GoalDrawer'
 import type { Goal, CategoryWithGoals } from '@/types'
 
@@ -21,7 +21,7 @@ function TeacherGoalRow({
   onGoalClick,
 }: {
   goal: Goal
-  onVerifiedChange: (id: string, verified: string) => void
+  onVerifiedChange: (id: string, verified: string, verifiedBy: string) => void
   onGoalClick: (goal: Goal) => void
 }) {
   const [verified, setVerified] = useState(goal.verified)
@@ -47,7 +47,7 @@ function TeacherGoalRow({
       }
       setVerified('yes')
       setVerifiedBy(nameInput.trim())
-      onVerifiedChange(goal.id, 'yes')
+      onVerifiedChange(goal.id, 'yes', nameInput.trim())
     } catch {
       setError('Network error – please try again')
     } finally {
@@ -72,7 +72,7 @@ function TeacherGoalRow({
       setVerified('')
       setVerifiedBy('')
       setNameInput('')
-      onVerifiedChange(goal.id, '')
+      onVerifiedChange(goal.id, '', '')
     } catch {
       setError('Network error – please try again')
     } finally {
@@ -82,21 +82,32 @@ function TeacherGoalRow({
 
   return (
     <div className="border-b border-white/10 py-4 px-2 last:border-b-0">
-      <div className="flex items-center gap-3">
-        <StatusDot status={goal.status} verified={verified} />
+      <div className="flex items-start gap-3">
+        <span className="flex h-7 shrink-0 items-center">
+          <StatusDot status={goal.status} verified={verified} />
+        </span>
 
         {goal.number && (
-          <span className="shrink-0 font-mono text-xs tracking-widest text-white/25">
+          <span className="shrink-0 pt-1.5 font-mono text-xs tracking-widest text-white/25">
             {goal.number}
           </span>
         )}
 
-        <button
-          onClick={() => onGoalClick(goal)}
-          className="min-w-0 flex-1 text-left text-sm text-white/70 transition-colors hover:text-white/90"
-        >
-          {goal.text}
-        </button>
+        <div className="min-w-0 flex-1 pt-1">
+          <button
+            onClick={() => onGoalClick(goal)}
+            className="text-left text-sm text-white/70 transition-colors hover:text-white/90"
+          >
+            {goal.text}
+          </button>
+          <StatusLabel
+            status={goal.status}
+            verified={verified}
+            verifiedBy={verifiedBy}
+            showEmpty
+            className="mt-1 block"
+          />
+        </div>
 
         <div className="flex shrink-0 items-center gap-2">
           {goal.types.slice(0, 2).map((t) => (
@@ -140,12 +151,6 @@ function TeacherGoalRow({
         </div>
       </div>
 
-      {verified === 'yes' && verifiedBy && (
-        <p className="mt-1 pl-8 text-[10px] tracking-[0.15em] uppercase text-white/30">
-          Verified by {verifiedBy}
-        </p>
-      )}
-
       {error && (
         <p className="mt-1 pl-8 text-[10px] tracking-[0.15em] uppercase text-red-400">
           {error}
@@ -178,11 +183,11 @@ export function TeacherDashboardClient({ categories: initial }: TeacherDashboard
     }))
     .filter((cat) => cat.goals.length > 0)
 
-  const handleVerifiedChange = useCallback((goalId: string, verified: string) => {
+  const handleVerifiedChange = useCallback((goalId: string, verified: string, verifiedBy: string) => {
     setCategories((prev) =>
       prev.map((cat) => ({
         ...cat,
-        goals: cat.goals.map((g) => (g.id === goalId ? { ...g, verified } : g)),
+        goals: cat.goals.map((g) => (g.id === goalId ? { ...g, verified, verifiedBy } : g)),
       }))
     )
   }, [])

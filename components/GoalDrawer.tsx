@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { StatusDot } from './StatusDot'
+import { StatusDot, StatusLabel } from './StatusDot'
 import type { Goal } from '@/types'
 
 interface GoalDrawerProps {
@@ -56,15 +56,6 @@ export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose, lightboxSrc])
 
-  const statusLabel =
-    goal?.verified === 'yes'
-      ? 'Verified'
-      : goal?.status === 'done'
-        ? 'Done'
-        : goal?.status === 'td'
-          ? 'In Progress'
-          : 'Not Started'
-
   return (
     <>
       {/* Overlay */}
@@ -103,14 +94,13 @@ export function GoalDrawer({ goal, onClose }: GoalDrawerProps) {
         <div className="flex items-center gap-4 border-b border-white/10 px-6 py-4">
           <div className="flex items-center gap-2">
             <StatusDot status={goal?.status ?? ''} verified={goal?.verified ?? ''} size="md" />
-            <div>
-              <span className="text-xs font-bold tracking-[0.15em] uppercase text-white/50">
-                {statusLabel}
-              </span>
-              {goal?.verified === 'yes' && goal.verifiedBy && (
-                <p className="text-[10px] tracking-widest text-white/30">by {goal.verifiedBy}</p>
-              )}
-            </div>
+            <StatusLabel
+              status={goal?.status ?? ''}
+              verified={goal?.verified ?? ''}
+              verifiedBy={goal?.verifiedBy ?? ''}
+              showEmpty
+              className="text-sm"
+            />
           </div>
           {goal?.types && goal.types.length > 0 && (
             <div className="flex gap-1.5">

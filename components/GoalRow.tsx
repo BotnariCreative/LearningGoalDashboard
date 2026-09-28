@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react'
 import gsap from 'gsap'
-import { StatusDot } from './StatusDot'
+import { StatusDot, StatusLabel } from './StatusDot'
 import type { Goal } from '@/types'
 
 interface GoalRowProps {
@@ -52,24 +52,32 @@ export function GoalRow({ goal, onClick }: GoalRowProps) {
         <span className="absolute bottom-1.5 right-1.5 h-2 w-2 border-[1.5px] border-l-0 border-t-0 border-white/40" />
       </div>
 
-      <div ref={contentRef} className="flex items-center gap-3 px-2">
-        <StatusDot status={goal.status} verified={goal.verified} />
+      <div ref={contentRef} className="flex items-start gap-3 px-2">
+        <span className="flex h-[1.625rem] shrink-0 items-center">
+          <StatusDot status={goal.status} verified={goal.verified} />
+        </span>
 
         {goal.number && (
-          <span className="shrink-0 font-mono text-xs tracking-widest text-white/30">
+          <span className="shrink-0 pt-1.5 font-mono text-xs tracking-widest text-white/30">
             {goal.number}
           </span>
         )}
 
         <span className="min-w-0 flex-1 text-sm leading-relaxed text-white/75">
           <span className="line-clamp-2">{goal.text}</span>
+          <StatusLabel
+            status={goal.status}
+            verified={goal.verified}
+            verifiedBy={goal.verifiedBy}
+            className="mt-1 block"
+          />
         </span>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 pt-0.5">
           {goal.types.map((t) => (
             <span
               key={t}
-              className="rounded-full border border-white/10 px-2.5 py-0.5 text-xs text-white/40"
+              className="hidden rounded-full border border-white/10 px-2.5 py-0.5 text-xs text-white/40 sm:inline"
             >
               {t}
             </span>
