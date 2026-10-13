@@ -70,7 +70,15 @@ export async function POST(request: Request) {
     }
 
     const ext = MIME_TO_EXT[detectedType]
-    const slug = `${randomBytes(16).toString('hex')}.${ext}`
+    // Library videos keep their original name so they can be recognised in the picker
+    const library = formData.get('library') === '1'
+    if (library && !detectedType.startsWith('video/')) {
+      return Response.json({ error: 'Only videos can be added to the library' }, { status: 400 })
+    }
+    const baseName = file.name.replace(/\.[^.]*$/, '').replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 60)
+    const slug = library
+      ? `library/${randomBytes(4).toString('hex')}-${baseName}.${ext}`
+      : `${randomBytes(16).toString('hex')}.${ext}`
 
     // Vercel Blob in production (BLOB_READ_WRITE_TOKEN set),
     // local filesystem in development
@@ -84,7 +92,7 @@ export async function POST(request: Request) {
     }
 
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-    await mkdir(uploadsDir, { recursive: true })
+    await mkdir(path.join(uploadsDir, 'library'), { recursive: true })
     await writeFile(path.join(uploadsDir, slug), buffer)
     return Response.json({ url: `/uploads/${slug}` })
   } catch (err) {

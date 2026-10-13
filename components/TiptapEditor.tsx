@@ -15,7 +15,7 @@ import {
   Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Minus,
   Link2, Link2Off,
-  ImageIcon, Video, Tv2,
+  ImageIcon, Video, Tv2, Library, Upload,
   Undo2, Redo2,
   Check, X,
 } from 'lucide-react'
@@ -25,9 +25,10 @@ interface TiptapEditorProps {
   onChange: (html: string) => void
 }
 
-async function uploadFile(file: File): Promise<string> {
+async function uploadFile(file: File, library = false): Promise<string> {
   const fd = new FormData()
   fd.append('file', file)
+  if (library) fd.append('library', '1')
   const res = await fetch('/api/upload', { method: 'POST', body: fd })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -77,12 +78,16 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
   const videoInputRef = useRef<HTMLInputElement>(null)
   const linkInputRef = useRef<HTMLInputElement>(null)
   const ytInputRef = useRef<HTMLInputElement>(null)
+  const libInputRef = useRef<HTMLInputElement>(null)
 
   const [linkPanel, setLinkPanel] = useState(false)
   const [linkValue, setLinkValue] = useState('')
   const [ytPanel, setYtPanel] = useState(false)
   const [ytValue, setYtValue] = useState('')
   const [words, setWords] = useState(0)
+  const [libPanel, setLibPanel] = useState(false)
+  const [libVideos, setLibVideos] = useState<{ url: string; name: string }[] | null>(null)
+  const [libUploading, setLibUploading] = useState(false)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -199,6 +204,35 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
     setYtValue('')
   }, [editor, ytValue])
 
+  const openLibPanel = useCallback(async () => {
+    setLibPanel((open) => !open)
+    setLinkPanel(false)
+    setYtPanel(false)
+    const res = await fetch('/api/videos')
+    setLibVideos(res.ok ? await res.json() : [])
+  }, [])
+
+  const insertLibVideo = useCallback((url: string) => {
+    editor?.chain().focus().insertContent({ type: 'video', attrs: { src: url } }).run()
+    setLibPanel(false)
+  }, [editor])
+
+  const handleLibUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setLibUploading(true)
+    try {
+      const url = await uploadFile(file, true)
+      const name = url.split('/').pop() ?? url
+      setLibVideos((v) => [...(v ?? []), { url, name }])
+    } catch (err) {
+      alert(`Video upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setLibUploading(false)
+    }
+  }, [])
+
   if (!editor) return null
 
   return (
@@ -287,6 +321,9 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
         <ToolbarBtn onClick={() => videoInputRef.current?.click()} title="Upload video">
           <Video size={14} />
         </ToolbarBtn>
+        <ToolbarBtn onClick={openLibPanel} active={libPanel} title="Video library">
+          <Library size={14} />
+        </ToolbarBtn>
         <ToolbarBtn onClick={openYtPanel} active={ytPanel} title="Embed YouTube">
           <Tv2 size={14} />
         </ToolbarBtn>
@@ -362,6 +399,53 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
         </div>
       )}
 
+      {/* ── Video library panel ── */}
+      {libPanel && (
+        <div className="border-b border-white/10 bg-white/4 px-3 py-2">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">Video library</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => libInputRef.current?.click()}
+                disabled={libUploading}
+                className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-40"
+              >
+                <Upload size={12} /> {libUploading ? 'Uploading…' : 'Upload to library'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLibPanel(false)}
+                className="flex h-6 w-6 items-center justify-center rounded text-white/40 hover:text-white/70"
+                aria-label="Close video library"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          </div>
+          {libVideos === null ? (
+            <p className="py-2 text-xs text-white/30">Loading…</p>
+          ) : libVideos.length === 0 ? (
+            <p className="py-2 text-xs text-white/30">No videos yet. Upload one to reuse it on any goal.</p>
+          ) : (
+            <ul className="max-h-48 space-y-0.5 overflow-y-auto">
+              {libVideos.map((v) => (
+                <li key={v.url}>
+                  <button
+                    type="button"
+                    onClick={() => insertLibVideo(v.url)}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-white/70 hover:bg-white/10 hover:text-white"
+                  >
+                    <Video size={13} className="shrink-0 text-white/40" />
+                    <span className="truncate">{v.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {/* ── Bubble menu (text selection) ── */}
       <BubbleMenu
         editor={editor}
@@ -401,6 +485,7 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
       {/* Hidden file inputs */}
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
       <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+      <input ref={libInputRef} type="file" accept="video/*" className="hidden" onChange={handleLibUpload} />
     </div>
   )
 }
